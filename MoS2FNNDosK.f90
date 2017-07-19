@@ -42,7 +42,7 @@ end subroutine
 end module
 
 module parm
-  integer, parameter :: nslice = 3, row = 4, crow = 8, ns = 123, nk = ns!*ns
+  integer, parameter :: nslice = 3, row = 4, crow = 8, ns = 23, nk = ns!*ns
 end module
 module modq
   use parm
@@ -340,7 +340,7 @@ contains
     integer :: n, i, j
     complex :: g0(n, n), hm1(n, n), v(n, n), vd(n, n), sf(n, n), ivg(n, n), z,hm0(n,n)
     vd = conjg(transpose(v))
-    do i=1,400
+    do i=1,100
     	hm1=0
       sf = matmul(v, g0)
       sf = matmul(sf, vd)
@@ -470,10 +470,10 @@ subroutine dosMo(z,dosi,hmdv,hmdpd,hmrd,hmrdpd,hmrdcp,hmrdcp1,hmld,hmldpd,hmldcp
 !~   stop
 
 
-  ivg=eye(ndv,z)
+  ivg=eye(ndv*3,z)
   ivg=ivg-hdfct-selfeg
   gredf=0
-  gredf=cInverse(ndv,ivg)
+  gredf=cInverse(ndv*3,ivg)
   !生成格点格林函数（缺陷核心区）
   dosi=0
   do i=1,ndv
