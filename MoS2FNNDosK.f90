@@ -42,7 +42,7 @@ end subroutine
 end module
 
 module parm
-  integer, parameter :: nslice = 3, row = 4, crow = 8, ns = 23, nk = ns!*ns
+  integer, parameter :: nslice = 3, row = 4, crow = 8, ns = 255, nk = ns!*ns
 end module
 module modq
   use parm
@@ -323,7 +323,7 @@ end module modq
 
 module modperiod
   use modq
-  integer ,parameter :: ndos=144,ndv=20,nld=5,nrd=5
+  integer ,parameter :: ndos=1023,ndv=20,nld=5,nrd=5
 contains
 
 	function expr(k)
@@ -340,7 +340,7 @@ contains
     integer :: n, i, j
     complex :: g0(n, n), hm1(n, n), v(n, n), vd(n, n), sf(n, n), ivg(n, n), z,hm0(n,n)
     vd = conjg(transpose(v))
-    do i=1,100
+    do i=1,400
     	hm1=0
       sf = matmul(v, g0)
       sf = matmul(sf, vd)
@@ -502,6 +502,7 @@ program main
 	  real :: kk(nk,2)
 	  complex :: z(ndos)
   complex,parameter :: h1(3,3)=reshape([-0.184,0.401,0.507,0.401,0.218,0.338,0.507,0.338,0.057],[3,3])
+  complex,parameter :: h01(3,3)=reshape([0.0,0.401,0.507,0.401,0.0,0.338,0.507,0.338,0.0],[3,3])
   complex,parameter :: ep1(3,3)=reshape([1.046,0.0,0.0,0.0,2.104,0.0,0.0,0.0,2.104],[3,3])
 	complex :: hmdv(ndv*3,ndv*3),hmdpd(ndv*3,ndv*3)
 	complex :: hmrd(nrd*3,nrd*3),hmrdpd(nrd*3,nrd*3),hmrdcp(nrd*3,nrd*3),hmrdcp1(nrd*3,nrd*3)
@@ -653,7 +654,7 @@ end do
 	!$OMP PARALLEL DO
 	do i=1,ndos
 !~ 		write(*,*) i,z
-	z(i)=t*(i-ndos/2)/ndos+(0.0,0.01)
+	z(i)=3.7*t*(i-ndos/2)/ndos+(0.0,0.01)
 		call  dosMo(z(i),dosi(i),hmdv,hmdpd,hmrd,hmrdpd,hmrdcp,hmrdcp1,hmld,hmldpd,hmldcp,hmldcp1&
 		&,hmlcp,hmlcp1,hmrcp,hmrcp1,hdfct,kk,rmved,kdos(i,:))
 	end do
@@ -683,3 +684,4 @@ subroutine coordi(i, crow, row, x, y)
   if (mod(nx, 2) == mod(ny, 2)) ab = 0
   if (mod(nx, 2) /= mod(ny, 2)) ab = 1
 end subroutine coordi
+
