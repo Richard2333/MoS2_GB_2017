@@ -25,14 +25,14 @@ subroutine addblock(a,b,matrix,block,x,y)!插入矩阵块
 	integer :: a,b,x,y
 	complex :: matrix(a*b,a*b),block(a,a)
   integer :: i,j,m,n
-  matrix((x-1)*a+1:x*a,(y-1)*a+1:y*a)=matrix((x-1)*a+1:x*a,(y-1)*a+1:y*a)+block
-!~   do i=(x-1)*a+1,x*a
-!~     do j=(y-1)*a+1,y*a
-!~       m=i-(x-1)*a
-!~ 			n=j-(y-1)*a
-!~ 			matrix(i,j)=block(m,n)
-!~ 		end do
-!~ 	end do
+!~   matrix((x-1)*a+1:x*a,(y-1)*a+1:y*a)=matrix((x-1)*a+1:x*a,(y-1)*a+1:y*a)+block
+  do i=(x-1)*a+1,x*a
+    do j=(y-1)*a+1,y*a
+      m=i-(x-1)*a
+			n=j-(y-1)*a
+			matrix(i,j)=matrix(i,j)+block(m,n)
+		end do
+	end do
 end subroutine
 !读取格式：
 !a,---1stN-------,2ndN,3rdN
@@ -325,6 +325,16 @@ module modperiod
   use modq
   integer ,parameter :: ndos=144,ndv=20,nld=5,nrd=5
 contains
+
+	function expr(k)
+		implicit none
+		real :: k
+		real,parameter :: pi1=-3.1416*2
+		complex :: expr
+		expr=exp((0,pi1)*k)
+		return
+	end function
+
   subroutine surf(g0, n, hm0, v, z)
     implicit none
     integer :: n, i, j
@@ -491,7 +501,8 @@ program main
 	real :: dosi(ndos),kdos(ndos,nk)
 	  real :: kk(nk,2)
 	  complex :: z(ndos)
-    complex :: h1(3,3)
+  complex,parameter :: h1(3,3)=reshape([-0.184,0.401,0.507,0.401,0.218,0.338,0.507,0.338,0.057],[3,3])
+  complex,parameter :: ep1(3,3)=reshape([1.046,0.0,0.0,0.0,2.104,0.0,0.0,0.0,2.104],[3,3])
 	complex :: hmdv(ndv*3,ndv*3),hmdpd(ndv*3,ndv*3)
 	complex :: hmrd(nrd*3,nrd*3),hmrdpd(nrd*3,nrd*3),hmrdcp(nrd*3,nrd*3),hmrdcp1(nrd*3,nrd*3)
 	complex :: hmld(nld*3,nld*3),hmldpd(nld*3,nld*3),hmldcp(nld*3,nld*3),hmldcp1(nrd*3,nrd*3)
@@ -501,7 +512,8 @@ program main
 	
 	open(unit=233,file='molattice')
 
-
+!~ print *,h1
+!~ stop
 
 	!
 do k=1,1
@@ -511,6 +523,7 @@ do k=1,1
 			do j=1,6
 				if(tn1(j)/=0) call addblock(3,ndv,hmdv,h1,i,tn1(j))
 			end do
+			call addblock(3,ndv,hmdv,ep1,i,i)
 		end do
 		hmdpd=0
 		do i=1,ndv
@@ -524,28 +537,29 @@ do k=1,1
 		do i=1,nrd
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmrd,h1,i,tn1(j))
-				end do
+				if(tn1(j)/=0) call addblock(3,nrd,hmrd,h1,i,tn1(j))
+			end do
+			call addblock(3,nrd,hmrd,ep1,i,i)
 		end do 
 		hmrdpd=0
 		do i=1,nrd
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmrdpd,h1,i,tn1(j))
+				if(tn1(j)/=0) call addblock(3,nrd,hmrdpd,h1,i,tn1(j))
 			end do
 		end do 
 		hmrdcp=0
 		do i=1,nrd
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmrdcp,h1,i,tn1(j))
+				if(tn1(j)/=0) call addblock(3,nrd,hmrdcp,h1,i,tn1(j))
 			end do
 		end do
 		hmrdcp1=0
 		do i=1,nrd
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmrdcp1,h1,i,tn1(j))
+				if(tn1(j)/=0) call addblock(3,nrd,hmrdcp1,h1,i,tn1(j))
 			end do
 		end do
 
@@ -554,28 +568,29 @@ do k=1,1
 		do i=1,nld
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmld,h1,i,tn1(j))
+				if(tn1(j)/=0) call addblock(3,nld,hmld,h1,i,tn1(j))
 			end do
+			call addblock(3,nld,hmld,ep1,i,i)
 		end do 
 		hmldpd=0
 		do i=1,nld
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmldpd,h1,i,tn1(j))
+				if(tn1(j)/=0) call addblock(3,nld,hmldpd,h1,i,tn1(j))
 			end do
 		end do 
 		hmldcp=0
 		do i=1,nld
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmldcp,h1,i,tn1(j))
+				if(tn1(j)/=0) call addblock(3,nld,hmldcp,h1,i,tn1(j))
 			end do
 		end do
 		hmldcp1=0
 		do i=1,nld
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmldcp1,h1,i,tn1(j))
+				if(tn1(j)/=0) call addblock(3,nld,hmldcp1,h1,i,tn1(j))
 			end do
 		end do
 
@@ -583,14 +598,14 @@ do k=1,1
 		do i=1,nrd
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmrcp,h1,tn1(j),i)
+				if(tn1(j)/=0) call addblock(3,nrd,hmrcp,h1,tn1(j),i)
 			end do
 		end do
 		hmrcp1=0
 		do i=1,nrd
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmrcp1,h1,tn1(j),i)
+				if(tn1(j)/=0) call addblock(3,nrd,hmrcp1,h1,tn1(j),i)
 			end do
 		end do
 		
@@ -598,14 +613,14 @@ do k=1,1
 		do i=1,nld
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmlcp,h1,tn1(j),i)
+				if(tn1(j)/=0) call addblock(3,nld,hmlcp,h1,tn1(j),i)
 			end do
 		end do
 		hmlcp1=0
 		do i=1,nld
 			read(233,*) ttmp,(tn1(j),j=1,6)
 			do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hmlcp1,h1,tn1(j),i)
+				if(tn1(j)/=0) call addblock(3,nld,hmlcp1,h1,tn1(j),i)
 			end do
 		end do
 
