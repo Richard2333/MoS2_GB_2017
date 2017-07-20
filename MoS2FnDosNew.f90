@@ -502,13 +502,14 @@ program main
 	real :: kk(nk,2)
 	complex :: z(ndos)
 	real,parameter :: t0=-0.184,t1=0.401,t2=0.507,t11=0.218,t12=0.338,t22=0.057,s3=sqrt(3.0)
-  complex,parameter :: h1(3,3)=reshape([t0,t1,t2,-t1,t11,t12,t2,-t12,t22],[3,3]),&
-  &h3(3,3)=reshape([t0,0.5*t1-s3*t2/2.0,-s3*t1/2.0-0.5*t2,&
+  complex,parameter :: h01(3,3)=reshape([t0,t1,t2,-t1,t11,t12,t2,-t12,t22],[3,3]),&
+  &h03(3,3)=reshape([t0,0.5*t1-s3*t2/2.0,-s3*t1/2.0-0.5*t2,&
   &-0.5*t1-s3*t2/2.0,0.25*t11+0.75*t22,-s3*0.25*t11-t12+s3*t22/4.0,&
   &s3*t1/2.0-0.5*t2,-s3*t11/4.0+t12+s3*t22/4.0,0.75*t11+0.25*t22],[3,3]),&
-  &h2(3,3)=reshape([t0,0.5*t1+s3*t2/2.0,s3*t1/2.0-0.5*t2,&
+  &h02(3,3)=reshape([t0,0.5*t1+s3*t2/2.0,s3*t1/2.0-0.5*t2,&
   &-0.5*t1+s3*t2/2.0,0.25*t11+0.75*t22,s3*0.25*t11-t12-s3*t22/4.0,&
   &-s3*t1/2.0-0.5*t2,s3*t11/4.0+t12-s3*t22/4.0,0.75*t11+0.25*t22],[3,3])
+	complex,parameter :: h1(3,3)=transpose(h01),h2(3,3)=transpose(h02),h3(3,3)=transpose(h03)
   complex,parameter :: ep1(3,3)=reshape([1.046,0.0,0.0,0.0,2.104,0.0,0.0,0.0,2.104],[3,3])
 	complex :: hmdv(ndv*3,ndv*3),hmdpd(ndv*3,ndv*3)
 	complex :: hmrd(nrd*3,nrd*3),hmrdpd(nrd*3,nrd*3),hmrdcp(nrd*3,nrd*3),hmrdcp1(nrd*3,nrd*3),hmrdcp2(nrd*3,nrd*3)
@@ -519,6 +520,8 @@ program main
 	real,parameter :: ehgh=2.13,elow=-0.56
 	
 	open(unit=233,file='fmatrix')
+
+
 
 	hblks=0
 	hblks(1,:,:)=h1
