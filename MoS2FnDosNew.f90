@@ -11,14 +11,14 @@ subroutine insertblock(a,b,matrix,block,x,y)!插入矩阵块
 	integer :: a,b,x,y
 	complex :: matrix(a*b,a*b),block(a,a)
   integer :: i,j,m,n
-  matrix((x-1)*a+1:x*a,(y-1)*a+1:y*a)=block
-!~   do i=(x-1)*a+1,x*a
-!~     do j=(y-1)*a+1,y*a
-!~       m=i-(x-1)*a
-!~ 			n=j-(y-1)*a
-!~ 			matrix(i,j)=block(m,n)
-!~ 		end do
-!~ 	end do
+!~   matrix((x-1)*a+1:x*a,(y-1)*a+1:y*a)=block
+  do i=(x-1)*a+1,x*a
+    do j=(y-1)*a+1,y*a
+      m=i-(x-1)*a
+			n=j-(y-1)*a
+			matrix(i,j)=block(m,n)
+		end do
+	end do
 end subroutine
 subroutine addblock(a,b,matrix,block,x,y)!插入矩阵块
 	implicit none
@@ -323,6 +323,7 @@ end module modq
 
 module modperiod
   use modq
+  use MatOps
   integer ,parameter :: ndos=255,ndv=18,nld=4,nrd=4
 contains
 
@@ -340,7 +341,7 @@ contains
     integer :: n, i, j
     complex :: g0(n, n), hm1(n, n), v(n, n), vd(n, n), sf(n, n), ivg(n, n), z,hm0(n,n)
     vd = conjg(transpose(v))
-    do i=1,32
+    do i=1,127
     	hm1=0
       sf = matmul(v, g0)
       sf = matmul(sf, vd)
@@ -349,6 +350,55 @@ contains
     end do
 
   end subroutine
+
+	 subroutine surfcpk(g0, n, hm0, v0,v1,v2 ,z,kp)
+    implicit none
+    integer :: n, i, j,k
+    complex :: g0(n, n), hm1(n, n), v0(n, n), v1(n, n),v2(n,n), sf(n, n), ivg(n, n), z,hm0(n,n)
+    complex :: g01(3*n,3*n),v(n,3*n),vd(3*n,n)
+    real :: kp
+    
+    v(:,1:n)=v1
+    v(:,n+1:2*n)=v0
+    v(:,n*2+1:3*n)=v2
+    vd = conjg(transpose(v))
+
+    do k=1,100
+			g01=0
+			do i=1,3
+				do j=1,3
+					call insertblock(n,3,g01,g0*expr((i-j)*kp),i,j)
+				end do
+			end do 
+			hm1=0
+			sf=matmul(v,matmul(g01,vd))
+			hm1 = hm0 + sf
+			g0=greene(n,hm1,z)
+    end do
+
+  end subroutine
+
+	 function  sfecpk(g0,n0,n,v0,v1,v2 ,z,kp) result(sf)
+    implicit none
+    integer :: n, i, j,n0
+    complex :: g0(n, n), v0(n0, n), v1(n0, n),v2(n0,n), sf(n0, n0),z
+    complex :: g01(3*n,3*n),v(n0,3*n),vd(3*n,n0)
+    real :: kp
+    
+    v(:,1:n)=v1
+    v(:,n+1:2*n)=v0
+    v(:,n*2+1:3*n)=v2
+    vd = conjg(transpose(v))
+    do i=1,3
+    	do j=1,3
+    		call insertblock(n,3,g01,g0*expr((i-j)*kp),i,j)
+    	end do
+    end do 
+		sf=matmul(v,matmul(g01,vd))
+		return 
+	end function
+
+
   !能否用k得出一条线的GF之后再进行recursive:可以!因为recursive的自能只包括两点格林函数s
   subroutine hampd(hamcp, n, kk, hcpl)
     implicit none
@@ -426,7 +476,7 @@ subroutine dosMo(z,dosi,hmdv,hmdpd,hmrd,hmrdpd,hmrdcp,hmrdcp1,hmrdcp2,hmld,hmldp
   	kp=kk(i,2)
 !~   	write(*,*) kp
     call hampd(hmrdpd,nrd*3,kp,hkpdr)
-    call hampd(hmldpd,nld*3,kp,hkpdl)
+    call hampd(hmldpd,nld*3,kp,hkpdl)!周期边界的蛤密顿
     hamkr=hmrd+hkpdr
     hamkl=hmld+hkpdl
     gr=greene(nrd*3,hamkr,z)
@@ -434,21 +484,15 @@ subroutine dosMo(z,dosi,hmdv,hmdpd,hmrd,hmrdpd,hmrdcp,hmrdcp1,hmrdcp2,hmld,hmldp
 
 	eppx=exp((0,pi1)*kp)
 	
-		hmrdcp=hmrdcp+hmrdcp1*eppx+hmrdcp2*conjg(eppx)!+hmrdcp2*conjg(eppx)
-		hmldcp=hmldcp+hmldcp1*eppx+hmldcp2*conjg(eppx)
-    call surf(gr,nrd*3,hamkr,hmrdcp,z)
-    call surf(gl,nld*3,hamkl,hmldcp,z)!给定k得到lead自能
+		call surfcpk(gr,nrd*3,hamkr,hmrdcp,hmrdcp1,hmrdcp2,z,kp)
+    call surfcpk(gl,nld*3,hamkl,hmldcp,hmldcp1,hmldcp2,z,kp)!给定k得到lead自能
 
 		!得出左右lead耦合的作用（自能）
-		hmlcp=hmlcp+hmlcp1*eppx+hmlcp2*conjg(eppx)
-		hmrcp=hmrcp+hmrcp1*eppx+hmrcp2*conjg(eppx)!conjg(eppx)
 		!Coupling with lead terms in the next transverse cell
     
     sfedv=0
-    hlcp1=conjg(transpose(hmlcp))
-    sfedv=sfedv+matmul(hmlcp,matmul(gl,hlcp1))
-    hrcp1=conjg(transpose(hmrcp))
-    sfedv=sfedv+matmul(hmrcp,matmul(gr,hrcp1))
+    sfedv=sfedv+sfecpk(gr,ndv*3,nrd*3,hmrcp,hmrcp1,hmrcp2,z,kp)
+    sfedv=sfedv+sfecpk(gl,ndv*3,nld*3 ,hmlcp,hmlcp1,hmlcp2,z,kp)
     call hampd(hmdpd,ndv*3,kp,hkpdv)
     hmkdv=hkpdv+sfedv+hmdv
 		gdvk=greene(ndv*3,hmkdv,z)
@@ -517,7 +561,7 @@ program main
 	complex :: hmlcp(ndv*3,nld*3),hmlcp1(ndv*3,nld*3),hmlcp2(ndv*3,nld*3)
 	complex :: hmrcp(ndv*3,nrd*3),hmrcp1(ndv*3,nld*3),hmrcp2(ndv*3,nld*3)
 	complex :: hdfct(3*ndv,3*ndv),hblks(-3:3,3,3)
-	real,parameter :: ehgh=2.13,elow=-0.56
+	real,parameter :: ehgh=2.0,elow=-1.0
 	
 	open(unit=233,file='fmatrix')
 
@@ -535,7 +579,7 @@ program main
 !~ stop
 
 	!
-!~ do k=1,1
+do k=1,1
 		hmdv=0	
 		do i=1,ndv
 			read(233,*) ttmp,(tn1(j),j=1,ndv)
@@ -544,10 +588,6 @@ program main
 			end do
 			call addblock(3,ndv,hmdv,ep1,i,i)
 		end do
-!~ 		do i=1,ndv
-!~ 			write(77,*) (real(hmdv(i,j)),j=1,ndv)
-!~ 		end do
-!~ 		stop
 		hmdpd=0
 		do i=1,ndv
 			read(233,*) ttmp,(tn1(j),j=1,ndv)
@@ -676,7 +716,7 @@ program main
 		end do
 		
 !~ 		end do
-!~ end do 
+end do 
 
 	
 !~ 	rewind(233)
@@ -685,14 +725,14 @@ program main
     read(235,*) kk(i,1),kk(i,2)
   end do
 !~   rewind(235)
-	open(unit=234,file='defdev')
-  hdfct=0
-  do i=1,ndv
-    read(234,*) ttmp,(tn1(j),j=1,6),rmved(i)
-    do j=1,6
-				if(tn1(j)/=0) call addblock(3,ndv,hdfct,h1,i,tn1(j))
-			end do
-  end do
+!~ 	open(unit=234,file='defdev')
+!~   hdfct=0
+!~   do i=1,ndv
+!~     read(234,*) ttmp,(tn1(j),j=1,6),rmved(i)
+!~     do j=1,6
+!~ 				if(tn1(j)/=0) call addblock(3,ndv,hdfct,h1,i,tn1(j))
+!~ 			end do
+!~   end do
 !~   rewind(234)
 
 
