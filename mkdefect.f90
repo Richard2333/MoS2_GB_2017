@@ -8,7 +8,7 @@ include "networklibstandard.f90"
 program main
 	use param
 	implicit none
-	integer :: i,j,k,lns
+	integer :: i,j,k,lns,lna,lnb,va
 	integer :: ttmp,defect(sca,sca),removed(sca)
 	character(7) :: inputs
 	
@@ -25,6 +25,22 @@ program main
 				defect(i,lns)=0
 				defect(lns,i)=0
 			end do
+			removed(lns)=1 
+			go to 201
+		case('lnk')
+			read(*,*) lna,lnb,va
+			
+				defect(lna,lnb)=-va
+				defect(lnb,lna)=va
+			
+			removed(lns)=1 
+			go to 201
+		case('del')
+			read(*,*) lna,lnb
+			
+				defect(lna,lnb)=0
+				defect(lnb,lna)=0
+			
 			removed(lns)=1 
 			go to 201
 		case default
